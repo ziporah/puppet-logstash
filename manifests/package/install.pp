@@ -64,6 +64,7 @@ define logstash::package::install(
 
       case $logstash::software_provider {
         'package': { $before = Package[$name]  }
+        'local':   { info("software provided locally")}
         default:   { fail("software provider \"${logstash::software_provider}\".") }
       }
 
@@ -138,28 +139,36 @@ define logstash::package::install(
       $pkg_provider    = undef
     }
 
-  } else { # Package removal
-    $pkg_source     = undef
-    $package_ensure = 'absent'
-    if ($::osfamily == 'Suse') {
-      $pkg_provider = 'rpm'
+    } else { # Package removal
+    if ($logstash::software_provider == 'none') {
+      info("Hands off, package is installed")
     } else {
-      $pkg_provider = undef
+      $pkg_source     = undef
+      $package_ensure = 'absent'
+      if ($::osfamily == 'Suse') {
+        $pkg_provider = 'rpm'
+      } else {
+        $pkg_provider = undef
+      }
     }
 
-  }
-
-  if ($logstash::software_provider == 'package') {
-
-    package { $name:
-      ensure   => $package_ensure,
-      source   => $pkg_source,
-      provider => $pkg_provider,
-      tag      => 'logstash',
     }
 
-  } else {
-    fail("\"${logstash::software_provider}\" is not supported")
-  }
+    if ($logstash::software_provider == 'package') {
+
+      package { $name:
+        ensure   => $package_ensure,
+        source   => $pkg_source,
+        provider => $pkg_provider,
+        tag      => 'logstash',
+      }
+
+    } else {
+      if ($logstash::software_provider == 'none') {
+        info("Package is provided by local installation")
+      } else {
+        fail("\"${logstash::software_provider}\" is not supported")
+      }
+    }
 
 }
